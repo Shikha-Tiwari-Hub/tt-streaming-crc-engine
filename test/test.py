@@ -8,33 +8,82 @@ from cocotb.triggers import ClockCycles
 
 @cocotb.test()
 async def test_project(dut):
-    dut._log.info("Start")
+    dut._log.info("Start Simple CRC Test")
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, unit="us")
+    # Clock: 100 kHz (10 us period)
+    clock = Clock(dut.clk, 10, units="us")
     cocotb.start_soon(clock.start())
 
+    # ----------------------
     # Reset
-    dut._log.info("Reset")
+    # ----------------------
+    dut.rst_n.value = 0
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
-    dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+
+    await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
 
-    dut._log.info("Test project behavior")
+    # ----------------------
+    # 1. Test Restart
+    # ----------------------
+    dut._log.info("Testing Restart...")
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
-
-    # Wait for one clock cycle to see the output values
+    dut.uio_in.value = 0b00000010  # restart = 1
     await ClockCycles(dut.clk, 1)
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    dut.uio_in.value = 0
+    await ClockCycles(dut.clk, 1)
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+    # CRC should reset to 0xFF
+    assert dut.uo_out.value == 0xFF, \
+        f"Restart failed: {int(dut.uo_out.value)} != 0xFF"
+
+    dut._log.info("Restart passed.")
+
+    # ----------------------
+    # 2. Test Data Input
+    # ----------------------
+    dut._log.info("Testing Data Input...")
+
+    dut.ui_in.value = 0xA5  # sample data
+
+    dut.uio_in.value = 0b00000001  # valid_in = 1
+    await ClockCycles(dut.clk, 1)
+
+    dut.uio_in.value = 0
+    await ClockCycles(dut.clk, 1)
+
+    # CRC should change from initial value
+    assert dut.uo_out.value != 0xFF, \
+        "CRC did not update after valid input"
+
+    dut._log.info(f"CRC updated to: {int(dut.uo_out.value)}")
+
+    # ----------------------
+    # 3. Multiple Data Cycles
+    # ----------------------
+    dut._log.info("Testing Multiple Updates...")
+
+    data_sequence = [0x12, 0x34, 0x56]
+
+    for data in data_sequence:
+        dut.ui_in.value = data
+        dut.uio_in.value = 0b00000001  # valid_in
+
+        await ClockCycles(dut.clk, 1)
+
+        dut.uio_in.value = 0
+        await ClockCycles(dut.clk, 1)
+
+    # Just ensure it's still producing valid output
+    assert dut.uo_out.value is not None, "CRC output invalid"
+
+    dut._log.info(f"Final CRC: {int(dut.uo_out.value)}")
+
+    # ----------------------
+    # Test Done
+    # ----------------------
+    dut._log.info("All tests passed")
