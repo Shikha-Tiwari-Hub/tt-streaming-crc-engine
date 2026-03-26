@@ -1,42 +1,73 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
-
+# Tiny Tapeout Verilog Project
 - [Read the documentation for project](docs/info.md)
 
 ## What is Tiny Tapeout?
-
 Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
 
 To learn more and get started, visit https://tinytapeout.com.
 
-## Set up your Verilog project
+## Cyclic Redundancy Check (CRC)
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+This design is based on the concept of **Cyclic Redundancy Check (CRC)**, a widely used error-detection technique in digital communication systems.
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+CRC works by treating binary data as a polynomial and performing **modulo-2 division** using a generator polynomial (key). The remainder obtained from this division is appended to the original data for transmission.
 
-## Enable GitHub actions to build the results page
+At the receiver side, the same division is performed again:
+- If the remainder is **zero**, the data is considered error-free  
+- If the remainder is **non-zero**, an error is detected  
 
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+Unlike normal division, modulo-2 division:
+- Uses **XOR instead of subtraction**
+- Does not involve carry or borrow  
+- Operates purely on binary values  
 
-## Resources
+This makes CRC highly efficient for hardware implementation. :contentReference[oaicite:1]{index=1}
 
-- [FAQ](https://tinytapeout.com/faq/)
-- [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
-- [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
+### Architecture Diagram 
+<img width="500" height="500" alt="block diagram crc" src="https://github.com/user-attachments/assets/df5749aa-637e-413e-93bb-271a31bb6e6f" />
 
-## What next?
+---
+## ⚙️ Design Features
+- 8-bit streaming data input
+- Real-time CRC computation
+- Low-area hardware implementation (ASIC-friendly)
+- Simple control interface using valid and restart signals
+- Fully synchronous design (clock-driven)
+- Continuous output availability
 
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)
+---
+
+## Design Approach
+Instead of performing full binary division directly, this implementation uses a **shift-register-based approach (LFSR-like behavior)**.
+
+This approach:
+- Mimics modulo-2 division
+- Uses XOR operations for feedback
+- Is optimized for hardware efficiency
+- Reduces complexity compared to long division
+
+---
+
+## Applications
+This CRC engine can be used in:
+
+- Data communication systems (UART, SPI, etc.)
+- Error detection in digital transmission
+- Embedded systems data integrity checks
+- Storage systems (basic checksum validation)
+
+---
+## 🚀 Future Improvements
+
+- Support for configurable CRC polynomials  
+- Extend to CRC-16 / CRC-32  
+- Add UART interface for real-world communication  
+- Pipeline optimization for higher clock speeds  
+
+---
+## 📚 References
+
+- GeeksforGeeks - Modulo-2 Binary Division and CRC  
+- Digital Communication Systems (CRC error detection concept)
